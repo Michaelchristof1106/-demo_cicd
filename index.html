@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hello Cloud</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      display: flex;
+      height: 100vh;
+      margin: 0;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #f0f8ff 0%, #e6f7ff 100%);
+      color: #0b3d91;
+    }
+    h1 {
+      font-size: 3rem;
+      letter-spacing: 0.02em;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="greeting">Hello cloud</h1>
+
+  <script>
+    // Print to console
+    console.log('Hello cloud');
+
+    // Demonstrate dynamic DOM update (keeps the message accessible)
+    const greetingEl = document.getElementById('greeting');
+    greetingEl.textContent = 'Hello cloud';
+  </script>
+</body>
+</html>
