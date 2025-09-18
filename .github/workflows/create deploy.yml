@@ -1,10 +1,9 @@
-
-name: deploy
+name: Deploy to EC2
 
 on:
   push:
     branches:
-      - main   # change if needed
+      - main   # or your deployment branch
 
 jobs:
   deploy:
@@ -12,27 +11,29 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
-          # restore PEM with correct newlines
-          echo "${{ secrets.EC2_SSH_KEY }}" | tr -d '\r' | awk '{gsub(/\\n/,"\n")}1' > ~/.ssh/ec2_key.pem
+          cat <<'EOF' > ~/.ssh/ec2_key.pem
+          ${{ secrets.EC2_SSH_KEY }}
+          EOF
           chmod 600 ~/.ssh/ec2_key.pem
 
-      - name: Ensure Nginx is installed on EC2
+      - name: Install Nginx on EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/ec2_key.pem ubuntu@${{ secrets.EC2_HOST }} "
-            sudo apt update -y &&
-            sudo apt install -y nginx &&
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/ec2_key.pem ubuntu@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'
+            sudo apt update -y
+            sudo apt install nginx -y
             sudo systemctl enable nginx
-          "
+            sudo systemctl start nginx
+          EOF
 
-      - name: Copy index.html to EC2
+      - name: Deploy index.html
         run: |
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/ec2_key.pem index.html ubuntu@${{ secrets.EC2_HOST }}:/var/www/html/
-
-      - name: Restart Nginx on EC2
-        run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/ec2_key.pem ubuntu@${{ secrets.EC2_HOST }} "sudo systemctl restart nginx"
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/ec2_key.pem index.html ubuntu@${{ secrets.EC2_PUBLIC_IP }}:/tmp/index.html
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/ec2_key.pem ubuntu@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'
+            sudo mv /tmp/index.html /var/www/html/index.html
+            sudo chown www-data:www-data /var/www/html/index.html
+          EOF
