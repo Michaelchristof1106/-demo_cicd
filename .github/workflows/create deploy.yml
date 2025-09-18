@@ -1,9 +1,10 @@
+
 name: deploy
 
 on:
   push:
     branches:
-      - main   # change if you want another branch
+      - main   # change if needed
 
 jobs:
   deploy:
@@ -16,13 +17,22 @@ jobs:
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key.pem
+          # restore PEM with correct newlines
+          echo "${{ secrets.EC2_SSH_KEY }}" | tr -d '\r' | awk '{gsub(/\\n/,"\n")}1' > ~/.ssh/ec2_key.pem
           chmod 600 ~/.ssh/ec2_key.pem
+
+      - name: Ensure Nginx is installed on EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/ec2_key.pem ubuntu@${{ secrets.EC2_HOST }} "
+            sudo apt update -y &&
+            sudo apt install -y nginx &&
+            sudo systemctl enable nginx
+          "
 
       - name: Copy index.html to EC2
         run: |
           scp -o StrictHostKeyChecking=no -i ~/.ssh/ec2_key.pem index.html ubuntu@${{ secrets.EC2_HOST }}:/var/www/html/
 
-      - name: Restart Nginx
+      - name: Restart Nginx on EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/ec2_key.pem ubuntu@${{ secrets.EC2_HOST }} "sudo systemctl restart nginx"
